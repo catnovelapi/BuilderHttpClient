@@ -1,4 +1,4 @@
-package buildHttps
+package BuilderHttpClient
 
 import (
 	"fmt"
@@ -11,15 +11,13 @@ import (
 func Df(option ...Option) *ClientBuilder {
 	req := &ClientBuilder{}
 	req.Header = make(http.Header)
-	for _, opt := range option {
-		opt.apply(req)
-	}
-	if req.Method == "" {
-		req.Method = http.MethodGet
-	}
+	req.Method = http.MethodGet
 	req.Proto = "HTTP/1.1"
 	req.ProtoMajor = 1
 	req.ProtoMinor = 1
+	for _, opt := range option {
+		opt.apply(req)
+	}
 	return req
 }
 
