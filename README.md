@@ -23,7 +23,7 @@ import "github.com/catnovelapi/BuilderHttpClient"
 To make a GET request, you can use the `Get` function:
 
 ```go
-response := buildHttps.Get(url, options...)
+response := BuilderHttpClient.Get(url, options...)
 ```
 
 Here, `url` is the URL of the endpoint you want to send the GET request to, and `options` is an optional list of request options.
@@ -33,7 +33,7 @@ Here, `url` is the URL of the endpoint you want to send the GET request to, and 
 To make a POST request, you can use the `Post` function:
 
 ```go
-response := buildHttps.Post(url, options...)
+response := BuilderHttpClient.Post(url, options...)
 ```
 
 Here, `url` is the URL of the endpoint you want to send the POST request to, and `options` is an optional list of request options.
@@ -43,7 +43,7 @@ Here, `url` is the URL of the endpoint you want to send the POST request to, and
 To make a PUT request, you can use the `Put` function:
 
 ```go
-response := buildHttps.Put(url, options...)
+response := BuilderHttpClient.Put(url, options...)
 ```
 
 Here, `url` is the URL of the endpoint you want to send the PUT request to, and `options` is an optional list of request options.
@@ -53,7 +53,7 @@ Here, `url` is the URL of the endpoint you want to send the PUT request to, and 
 To make a DELETE request, you can use the `Delete` function:
 
 ```go
-response := buildHttps.Delete(url, options...)
+response := BuilderHttpClient.Delete(url, options...)
 ```
 
 Here, `url` is the URL of the endpoint you want to send the DELETE request to, and `options` is an optional list of request options.
@@ -63,7 +63,7 @@ Here, `url` is the URL of the endpoint you want to send the DELETE request to, a
 To make a PATCH request, you can use the `Patch` function:
 
 ```go
-response := buildHttps.Patch(url, options...)
+response := BuilderHttpClient.Patch(url, options...)
 ```
 
 Here, `url` is the URL of the endpoint you want to send the PATCH request to, and `options` is an optional list of request options.
@@ -80,20 +80,20 @@ You can customize the request by providing various options. The available option
 Here's an example that demonstrates how to use request options:
 
 ```go
-options := []buildHttps.Option{
-    buildHttps.Method("POST"),
-    buildHttps.ApiPath("https://api.example.com/users"),
-    buildHttps.Header(map[string]interface{}{
+options := []BuilderHttpClient.Option{
+    BuilderHttpClient.Method("POST"),
+    BuilderHttpClient.ApiPath("https://api.example.com/users"),
+    BuilderHttpClient.Header(map[string]interface{}{
         "Content-Type": "application/json",
         "Authorization": "Bearer token",
     }),
-    buildHttps.Body(map[string]interface{}{
+    BuilderHttpClient.Body(map[string]interface{}{
         "name": "John Doe",
         "email": "john@example.com",
     }),
 }
 
-response := buildHttps.Post(url, options...)
+response := BuilderHttpClient.Post(url, options...)
 ```
 
 ### Response Handling
@@ -106,11 +106,12 @@ The response from the HTTP request is returned as a `ResponseInterfaceBuilder`. 
 - `Text() string`: Returns the response body as a string.
 - `Gjson() gjson.Result`: Parses the response body as JSON and returns a `gjson.Result` object.
 - `Debug() *ResponseBuilder`: Prints debug information about the request and response.
-
+- `Cookies() string`: Returns the cookies from the response.
+- `Bytes() []byte`: Returns the response body as a byte array.
 Here's an example that demonstrates how to handle the response:
 
 ```go
-response := buildHttps.Get(url, options...)
+response := BuilderHttpClient.Get(url, options...)
 
 fmt.Println("Status Code:", response.Code())
 fmt.Println("Status:", response.Status())

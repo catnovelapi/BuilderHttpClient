@@ -12,7 +12,7 @@ type ResponseBuilder struct {
 	code       int
 	status     string
 	body       io.Reader
-	bodyString string
+	bodyResult []byte
 	cookie     string
 }
 type ResponseInterfaceBuilder interface {
@@ -63,22 +63,29 @@ func (c *ResponseBuilder) Json(v any) error {
 }
 
 func (c *ResponseBuilder) Text() string {
+	return string(c.Byte())
+}
+
+func (c *ResponseBuilder) Byte() []byte {
 	if c.body == nil {
 		log.Printf("响应体为空,无法读取")
-		return ""
+		return nil
 	}
-	if c.bodyString != "" {
-		return c.bodyString
+	if c.bodyResult != nil {
+		return c.bodyResult
 	}
 	b, err := io.ReadAll(c.body)
 	if err != nil {
 		log.Printf("读取响应体失败: %s", err)
-		return ""
+		return nil
 	}
-	c.bodyString = string(b)
-	return c.bodyString
+	c.bodyResult = b
+	return b
 }
 
 func (c *ResponseBuilder) Gjson() gjson.Result {
-	return gjson.Parse(c.Text())
+	return gjson.ParseBytes(c.Byte())
+}
+func (c *ResponseBuilder) Cookie() string {
+	return c.cookie
 }
