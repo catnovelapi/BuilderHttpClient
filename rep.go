@@ -22,6 +22,8 @@ type ResponseInterfaceBuilder interface {
 	Text() string
 	Gjson() gjson.Result
 	Debug() *ResponseBuilder
+	Byte() []byte
+	Cookie() string
 }
 
 func (c *ResponseBuilder) Debug() *ResponseBuilder {
