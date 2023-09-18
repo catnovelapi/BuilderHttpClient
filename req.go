@@ -8,19 +8,6 @@ import (
 	"strings"
 )
 
-func Df(option ...Option) *ClientBuilder {
-	req := &ClientBuilder{}
-	req.Header = make(http.Header)
-	req.Method = http.MethodGet
-	req.Proto = "HTTP/1.1"
-	req.ProtoMajor = 1
-	req.ProtoMinor = 1
-	for _, opt := range option {
-		opt.apply(req)
-	}
-	return req
-}
-
 type ClientBuilder struct {
 	http.Request
 	dataBody    any
@@ -43,7 +30,7 @@ func (b *ClientBuilder) NewCookie(cookie map[string]string) *ClientBuilder {
 	return b
 }
 
-func (b *ClientBuilder) Build() ResponseInterfaceBuilder {
+func (b *ClientBuilder) Build() *ResponseBuilder {
 	if b.Method == http.MethodGet {
 		b.requestBody = encodeDataFormValue(b.dataBody)
 		b.URL.RawQuery = b.requestBody
@@ -77,4 +64,8 @@ func (b *ClientBuilder) Build() ResponseInterfaceBuilder {
 		responseClient.cookie += cookie.Name + "=" + cookie.Value + ";"
 	}
 	return responseClient
+}
+
+func (b *ClientBuilder) NewBuild() ResponseInterfaceBuilder {
+	return b.Build()
 }

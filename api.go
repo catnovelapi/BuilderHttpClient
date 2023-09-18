@@ -4,35 +4,40 @@ import (
 	"net/http"
 )
 
-func httpDefault(options []Option, optionsDefault ...Option) ResponseInterfaceBuilder {
-	var optionArray []Option
-	for _, opt := range optionsDefault {
-		optionArray = append(optionArray, opt)
+func BuilderDefault(url string, options ...Option) *ClientBuilder {
+	options = append(options, ApiPath(url))
+	req := &ClientBuilder{}
+	req.Header = make(http.Header)
+	req.Method = http.MethodGet
+	req.Proto = "HTTP/1.1"
+	req.ProtoMajor = 1
+	req.ProtoMinor = 1
+	for _, opt := range options {
+		opt.apply(req)
 	}
-	if options != nil {
-		for _, opt := range options {
-			optionArray = append(optionArray, opt)
-		}
-	}
-	return Df(optionArray...).Build()
+	return req
 }
 
 func Get(url string, options ...Option) ResponseInterfaceBuilder {
-	return httpDefault(options, ApiPath(url))
+	return BuilderDefault(url, options...).NewBuild()
 }
 
 func Post(url string, options ...Option) ResponseInterfaceBuilder {
-	return httpDefault(options, Method(http.MethodPost), ApiPath(url))
+	options = append(options, Method(http.MethodPost))
+	return BuilderDefault(url, options...).NewBuild()
 }
 
 func Put(url string, options ...Option) ResponseInterfaceBuilder {
-	return httpDefault(options, Method(http.MethodPut), ApiPath(url))
+	options = append(options, Method(http.MethodPut))
+	return BuilderDefault(url, options...).NewBuild()
 }
 
 func Delete(url string, options ...Option) ResponseInterfaceBuilder {
-	return httpDefault(options, Method(http.MethodDelete), ApiPath(url))
+	options = append(options, Method(http.MethodDelete))
+	return BuilderDefault(url, options...).NewBuild()
 }
 
 func Patch(url string, options ...Option) ResponseInterfaceBuilder {
-	return httpDefault(options, Method(http.MethodPatch), ApiPath(url))
+	options = append(options, Method(http.MethodPatch))
+	return BuilderDefault(url, options...).NewBuild()
 }

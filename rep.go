@@ -24,6 +24,7 @@ type ResponseInterfaceBuilder interface {
 	Text() string
 	Gjson() gjson.Result
 	Debug() *ResponseBuilder
+	DebugString() string
 	Byte() []byte
 	Cookie() string
 }
