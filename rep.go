@@ -2,9 +2,11 @@ package BuilderHttpClient
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/tidwall/gjson"
 	"io"
 	"log"
+	"strings"
 )
 
 type ResponseBuilder struct {
@@ -27,23 +29,42 @@ type ResponseInterfaceBuilder interface {
 }
 
 func (c *ResponseBuilder) Debug() *ResponseBuilder {
-	log.Println("START ====================================")
-	log.Printf("Method: %s\n", c.request.Method)
-	log.Printf("URL: %s\n", c.request.URL.String())
-	log.Printf("Query Data: %s\n", c.request.requestBody)
-	for k, v := range c.request.Header {
-		log.Printf("Header :  %s: %s\n", k, v)
-	}
-	log.Printf("Cookie : %s\n", c.cookie)
-	log.Printf("Status: %s\n", c.status)
-	log.Printf("StatusCode: %v\n", c.code)
-	if c.body == nil {
-		log.Println("响应体为空,无法读取")
-	} else {
-		log.Printf("Result: %s\n", c.Text())
-	}
-	log.Println("==================================== END")
+	log.Println(c.DebugString())
 	return c
+}
+
+func (c *ResponseBuilder) DebugString() string {
+	var sb strings.Builder
+	sb.WriteString("START ====================================\n")
+	sb.WriteString("Method: ")
+	sb.WriteString(c.request.Method)
+	sb.WriteString("\nURL: ")
+	sb.WriteString(c.request.URL.String())
+	sb.WriteString("\nQuery Data: ")
+	sb.WriteString(c.request.requestBody)
+	sb.WriteString("\n")
+
+	sb.WriteString("HeaderSTART: ")
+	for k, v := range c.request.Header {
+		sb.WriteString(fmt.Sprintf("\t%s: %s\n", k, v))
+	}
+	sb.WriteString("HeaderEND\n")
+	sb.WriteString("Cookie: ")
+	sb.WriteString(c.cookie)
+	sb.WriteString("\nStatus: ")
+	sb.WriteString(c.status)
+	sb.WriteString("\nStatusCode: ")
+	sb.WriteString(fmt.Sprintf("%v\n", c.code))
+
+	if c.body == nil {
+		sb.WriteString("响应体为空，无法读取")
+	} else {
+		sb.WriteString("Result: ")
+		sb.WriteString(c.Text())
+	}
+	sb.WriteString("END \n====================================\n")
+
+	return sb.String()
 }
 func (c *ResponseBuilder) Code() int {
 	return c.code
