@@ -6,6 +6,8 @@ import (
 	"github.com/tidwall/gjson"
 	"io"
 	"log"
+
+	"github.com/PuerkitoBio/goquery"
 	"strings"
 )
 
@@ -27,6 +29,7 @@ type ResponseInterfaceBuilder interface {
 	DebugString() string
 	Byte() []byte
 	Cookie() string
+	Html() *goquery.Document
 }
 
 func (c *ResponseBuilder) Debug() *ResponseBuilder {
@@ -89,7 +92,18 @@ func (c *ResponseBuilder) Json(v any) error {
 func (c *ResponseBuilder) Text() string {
 	return string(c.Byte())
 }
-
+func (c *ResponseBuilder) Html() *goquery.Document {
+	if c.body == nil {
+		log.Printf("响应体为空,无法读取")
+		return nil
+	}
+	doc, err := goquery.NewDocumentFromReader(c.body)
+	if err != nil {
+		log.Printf("读取响应体失败: %s", err)
+		return nil
+	}
+	return doc
+}
 func (c *ResponseBuilder) Byte() []byte {
 	if c.body == nil {
 		log.Printf("响应体为空,无法读取")

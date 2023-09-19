@@ -3,9 +3,11 @@ package BuilderHttpClient
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 type Option interface {
@@ -27,6 +29,34 @@ func Debug() Option {
 			log.SetOutput(file)
 			log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 			log.SetPrefix("[http_builder]")
+		}
+	})
+}
+
+func Cookie(cookie map[string]string) Option {
+	return OptionFunc(func(b *ClientBuilder) {
+		for k, v := range cookie {
+			s := fmt.Sprintf("%s=%s", k, v)
+			if c := b.Header.Get("Cookie"); c != "" {
+				b.Header.Set("Cookie", c+"; "+s)
+			} else {
+				b.Header.Set("Cookie", s)
+			}
+		}
+	})
+}
+func Timeout(timeout int) Option {
+	return OptionFunc(func(c *ClientBuilder) {
+		c.Client.Timeout = time.Duration(timeout) * time.Second
+	})
+}
+func Proxy(proxy string) Option {
+	return OptionFunc(func(c *ClientBuilder) {
+		proxyParse, err := url.Parse(proxy)
+		if err != nil {
+			log.Printf("proxy 解析失败: %s", err)
+		} else {
+			c.Client.Transport = &http.Transport{Proxy: http.ProxyURL(proxyParse)}
 		}
 	})
 }

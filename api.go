@@ -12,6 +12,7 @@ func BuilderDefault(url string, options ...Option) *ClientBuilder {
 	req.Proto = "HTTP/1.1"
 	req.ProtoMajor = 1
 	req.ProtoMinor = 1
+	Timeout(10).apply(req)
 	for _, opt := range options {
 		opt.apply(req)
 	}
