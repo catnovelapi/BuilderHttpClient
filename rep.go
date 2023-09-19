@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/tidwall/gjson"
+	"golang.org/x/net/html"
+	"golang.org/x/text/encoding/simplifiedchinese"
+	"golang.org/x/text/transform"
 	"io"
 	"log"
 
@@ -24,12 +27,14 @@ type ResponseInterfaceBuilder interface {
 	Status() string
 	Json(v any) error
 	Text() string
+	TextGbk() string
 	Gjson() gjson.Result
 	Debug() *ResponseBuilder
 	DebugString() string
 	Byte() []byte
 	Cookie() string
 	Html() *goquery.Document
+	HtmlGbk() *goquery.Document
 }
 
 func (c *ResponseBuilder) Debug() *ResponseBuilder {
@@ -92,11 +97,17 @@ func (c *ResponseBuilder) Json(v any) error {
 func (c *ResponseBuilder) Text() string {
 	return string(c.Byte())
 }
-func (c *ResponseBuilder) Html() *goquery.Document {
-	if c.body == nil {
-		log.Printf("响应体为空,无法读取")
-		return nil
+func (c *ResponseBuilder) TextGbk() string {
+	decoder := simplifiedchinese.GBK.NewDecoder()
+	utf8BodyReader := transform.NewReader(strings.NewReader(c.Text()), decoder)
+	utf8Body, err := io.ReadAll(utf8BodyReader)
+	if err != nil {
+		fmt.Println("解码失败:", err)
+		return ""
 	}
+	return string(utf8Body)
+}
+func (c *ResponseBuilder) Html() *goquery.Document {
 	doc, err := goquery.NewDocumentFromReader(c.body)
 	if err != nil {
 		log.Printf("读取响应体失败: %s", err)
@@ -104,6 +115,20 @@ func (c *ResponseBuilder) Html() *goquery.Document {
 	}
 	return doc
 }
+func (c *ResponseBuilder) HtmlGbk() *goquery.Document {
+	docs, err := html.Parse(strings.NewReader(c.TextGbk()))
+	if err != nil {
+		fmt.Println("解析HTML失败:", err)
+		return nil
+	}
+	doc := goquery.NewDocumentFromNode(docs)
+	if err != nil {
+		fmt.Println("解析HTML失败:", err)
+		return nil
+	}
+	return doc
+}
+
 func (c *ResponseBuilder) Byte() []byte {
 	if c.body == nil {
 		log.Printf("响应体为空,无法读取")
