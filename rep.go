@@ -9,6 +9,7 @@ import (
 	"golang.org/x/text/transform"
 	"io"
 	"log"
+	"reflect"
 
 	"github.com/PuerkitoBio/goquery"
 	"strings"
@@ -18,10 +19,10 @@ type ResponseBuilder struct {
 	request    *ClientBuilder
 	code       int
 	status     string
-	body       io.Reader
 	bodyResult []byte
 	cookie     string
 }
+
 type ResponseInterfaceBuilder interface {
 	Code() int
 	Status() string
@@ -45,16 +46,21 @@ func (c *ResponseBuilder) Debug() *ResponseBuilder {
 func (c *ResponseBuilder) DebugString() string {
 	var sb strings.Builder
 	sb.WriteString("START ====================================\n")
+	if c.request == nil {
+		sb.WriteString("请求体为空，无法读取")
+		sb.WriteString("END \n====================================\n")
+		return sb.String()
+	}
 	sb.WriteString("Method: ")
-	sb.WriteString(c.request.Method)
+	sb.WriteString(c.request.r.Method)
 	sb.WriteString("\nURL: ")
-	sb.WriteString(c.request.URL.String())
+	sb.WriteString(c.request.r.URL.String())
 	sb.WriteString("\nQuery Data: ")
 	sb.WriteString(c.request.requestBody)
 	sb.WriteString("\n")
 
 	sb.WriteString("HeaderSTART: ")
-	for k, v := range c.request.Header {
+	for k, v := range c.request.r.Header {
 		sb.WriteString(fmt.Sprintf("\t%s: %s\n", k, v))
 	}
 	sb.WriteString("HeaderEND\n")
@@ -65,7 +71,7 @@ func (c *ResponseBuilder) DebugString() string {
 	sb.WriteString("\nStatusCode: ")
 	sb.WriteString(fmt.Sprintf("%v\n", c.code))
 
-	if c.body == nil {
+	if c.bodyResult == nil {
 		sb.WriteString("响应体为空，无法读取")
 	} else {
 		sb.WriteString("Result: ")
@@ -83,19 +89,21 @@ func (c *ResponseBuilder) Status() string {
 }
 
 func (c *ResponseBuilder) Json(v any) error {
-	if c.body == nil {
-		log.Printf("DecodeJson:响应体为空")
-		return nil
-	}
 	if v == nil {
-		log.Printf("DecodeJson:传入的对象不能为空")
-		return nil
+		return fmt.Errorf("DecodeJson:传入的对象不能为空")
+	} else if c.bodyResult == nil {
+		return fmt.Errorf("DecodeJson:响应体为空，无法读取")
+	} else {
+		valueType := reflect.TypeOf(v)
+		if valueType.Kind() != reflect.Ptr {
+			return fmt.Errorf("DecodeJson:传入的对象必须是指针类型")
+		}
 	}
-	return json.NewDecoder(c.body).Decode(v)
+	return json.NewDecoder(strings.NewReader(c.Text())).Decode(v)
 }
 
 func (c *ResponseBuilder) Text() string {
-	return string(c.Byte())
+	return string(c.bodyResult)
 }
 func (c *ResponseBuilder) TextGbk() string {
 	decoder := simplifiedchinese.GBK.NewDecoder()
@@ -108,7 +116,7 @@ func (c *ResponseBuilder) TextGbk() string {
 	return string(utf8Body)
 }
 func (c *ResponseBuilder) Html() *goquery.Document {
-	doc, err := goquery.NewDocumentFromReader(c.body)
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(c.Text()))
 	if err != nil {
 		log.Printf("读取响应体失败: %s", err)
 		return nil
@@ -130,24 +138,11 @@ func (c *ResponseBuilder) HtmlGbk() *goquery.Document {
 }
 
 func (c *ResponseBuilder) Byte() []byte {
-	if c.body == nil {
-		log.Printf("响应体为空,无法读取")
-		return nil
-	}
-	if c.bodyResult != nil {
-		return c.bodyResult
-	}
-	b, err := io.ReadAll(c.body)
-	if err != nil {
-		log.Printf("读取响应体失败: %s", err)
-		return nil
-	}
-	c.bodyResult = b
-	return b
+	return c.bodyResult
 }
 
 func (c *ResponseBuilder) Gjson() gjson.Result {
-	return gjson.ParseBytes(c.Byte())
+	return gjson.Parse(c.Text())
 }
 func (c *ResponseBuilder) Cookie() string {
 	return c.cookie

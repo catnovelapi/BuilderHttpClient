@@ -1,59 +1,61 @@
 package BuilderHttpClient
 
 import (
+	"fmt"
 	"io"
+	"net/url"
+	"sync"
+	"time"
 
-	"log"
 	"net/http"
-	"strings"
 )
 
 type ClientBuilder struct {
-	http.Request
-	http.Client
+	sync.Mutex
+	r           *http.Request
+	timeout     time.Duration
+	proxyPath   *url.URL
 	dataBody    any
 	requestBody string
 }
 
 type RequestInterfaceBuilder interface {
-	Build() ResponseInterfaceBuilder
+	NewRequestClient() (*ResponseBuilder, error)
 }
 
-func (b *ClientBuilder) Build() *ResponseBuilder {
-	if b.Method == http.MethodGet {
-		b.requestBody = encodeDataFormValue(b.dataBody)
-		b.URL.RawQuery = b.requestBody
-		b.Header.Del("Content-Type")
-	} else {
-		if b.Header.Get("Content-Type") == "" {
-			b.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		}
-		switch b.Header.Get("Content-Type") {
-		case "application/json":
-			b.requestBody = encodeJsonDataValue(b.dataBody)
-		case "multipart/form-data":
-		default:
-			b.requestBody = encodeDataFormValue(b.dataBody)
-		}
-		b.Body = io.NopCloser(strings.NewReader(b.requestBody))
+func (b *ClientBuilder) NewRequestClient() (*ResponseBuilder, error) {
+	defaultClient := &http.Client{}
+	if b.proxyPath != nil {
+		defaultClient.Transport = &http.Transport{Proxy: http.ProxyURL(b.proxyPath)}
 	}
-	sendClient, err := b.Client.Do(&b.Request)
+	if b.timeout != 0 {
+		defaultClient.Timeout = b.timeout
+	}
+
+	do, err := defaultClient.Do(b.r)
+
 	if err != nil {
-		log.Printf("发送请求失败: %s", err)
-		return &ResponseBuilder{}
+		return nil, fmt.Errorf("发送请求失败: %s", err)
+	} else if do == nil {
+		return nil, fmt.Errorf("请求失败,响应体为空")
+	} else if do.Body == nil {
+		return nil, fmt.Errorf("响应体Body为空")
+	} else {
+		defer do.Body.Close()
 	}
-	responseClient := &ResponseBuilder{
-		request: b,
-		code:    sendClient.StatusCode,
-		status:  sendClient.Status,
-		body:    sendClient.Body,
-	}
-	for _, cookie := range sendClient.Cookies() {
-		responseClient.cookie += cookie.Name + "=" + cookie.Value + ";"
-	}
-	return responseClient
-}
 
-func (b *ClientBuilder) NewBuild() ResponseInterfaceBuilder {
-	return b.Build()
+	rep := &ResponseBuilder{
+		request: b,
+		code:    do.StatusCode,
+		status:  do.Status,
+	}
+	body, ok := io.ReadAll(do.Body)
+	if ok != nil {
+		return nil, fmt.Errorf("读取响应体失败: %s", ok)
+	}
+	rep.bodyResult = body
+	for _, cookie := range do.Cookies() {
+		rep.cookie += cookie.Name + "=" + cookie.Value + ";"
+	}
+	return rep, nil
 }
